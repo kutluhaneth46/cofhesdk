@@ -1,5 +1,36 @@
 # @cofhe/mock-contracts Changelog
 
+## 0.9.0
+
+### Minor Changes
+
+- 6dcfb7d: ACPs sharing SNAPSHOTs (ctHashes rather than live data) can use the new on-chain ACP Sharing Registry `metadata` field to cite the origin of the snapshotted data (contract address + view-function / event), and the recipient can verify it on-chain. [Docs](https://cofhesdk.fhenix.io/sdk/acp#labelling-a-snapshot-share)
+
+  **@cofhe/sdk**
+
+  - `createSharing({ labels })`, `shareOnChain(acp, { labels | metadata })`; labels travel in `export()` / `importShared` as `SharedACP.metadata`.
+  - New `client.acp.verifyShareLabels`, `client.acp.getShareFromChain`, and `describeShareMetadata`. `IncomingShare` gains `metadata` and `appKey`.
+  - New `acp.app` config option: shares are tagged with the app's key and `getIncomingShares` lists only that app's shares ([docs](https://cofhesdk.fhenix.io/sdk/acp#mark-shares-for-your-app)).
+  - `@cofhe/sdk/acps` exports the metadata codec, label builders (`viewFunctionLabel`, `eventLogLabel`, `UNLABELLED`), verifiers, registry readers, `shareAppKey` and `ERC7984_ABI`.
+
+  **@cofhe/react**
+
+  - New `useCofheShareLabels`. `useCofheShareOnChain` accepts `{ acp, labels | metadata }`.
+  - The inbox shows each share's labels and their verification. [Docs](https://cofhesdk.fhenix.io/react/acp#share-labels)
+
+  **Mocks and plugins**
+
+  - `ACPShareRegistry`, `ACPTimestampRevoker` and `Permissioned` are copied verbatim from a pinned cofhe-contracts commit (`pnpm update:cofhe-contracts <commit>`). The share registry is deployed behind `MockERC1967Proxy`.
+  - Mocks now need Solidity ≥0.8.25 and `@openzeppelin/contracts-upgradeable` (new Hardhat plugin peer dependency; Foundry users add its remapping).
+
+### Patch Changes
+
+- b14b968: `FHE.not` on encrypted integers is now a bitwise NOT in the mocks (`not(euint8(2))` is 253, not 0), and `FHE.rol` / `FHE.ror` now rotate within the type's width, with the amount taken modulo the width, instead of shifting. This matches TFHE-rs.
+- 010e1c9: `MockTaskManager.createRandomTask` now works like the real task manager: the handle carries the requested type and security zone, the caller gets transient access, the zone is validated and a value is stored, so `FHE.random*` handles can be allowed and computed on in Hardhat and Foundry tests.
+- 14f53b5: `FHE.rem(x, 0)` in `MockCoFHE` now returns `x` like TFHE-rs instead of reverting with a division by zero panic.
+- f1750be: `MockTaskManager.isPubliclyAllowed` now returns whether a handle was made public with `FHE.allowGlobal` / `FHE.allowPublic`, like the TaskManager, instead of reverting with `NotImplemented`.
+- 8471831: `MockTaskManager.createTask` now validates `trivialEncrypt` inputs like the real task manager: `FHE.asEuint8(256)` and the other `FHE.asE*` calls with a value that does not fit the type revert with `InvalidInputForFunction`, and an out of range security zone reverts with `InvalidSecurityZone`, instead of the value being stored masked.
+
 ## 0.8.0
 
 ### Minor Changes

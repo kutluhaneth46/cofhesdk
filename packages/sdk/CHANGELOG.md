@@ -1,5 +1,45 @@
 # @cofhe/sdk Changelog
 
+## 0.9.0
+
+### Minor Changes
+
+- 6dcfb7d: ACPs sharing SNAPSHOTs (ctHashes rather than live data) can use the new on-chain ACP Sharing Registry `metadata` field to cite the origin of the snapshotted data (contract address + view-function / event), and the recipient can verify it on-chain. [Docs](https://cofhesdk.fhenix.io/sdk/acp#labelling-a-snapshot-share)
+
+  **@cofhe/sdk**
+
+  - `createSharing({ labels })`, `shareOnChain(acp, { labels | metadata })`; labels travel in `export()` / `importShared` as `SharedACP.metadata`.
+  - New `client.acp.verifyShareLabels`, `client.acp.getShareFromChain`, and `describeShareMetadata`. `IncomingShare` gains `metadata` and `appKey`.
+  - New `acp.app` config option: shares are tagged with the app's key and `getIncomingShares` lists only that app's shares ([docs](https://cofhesdk.fhenix.io/sdk/acp#mark-shares-for-your-app)).
+  - `@cofhe/sdk/acps` exports the metadata codec, label builders (`viewFunctionLabel`, `eventLogLabel`, `UNLABELLED`), verifiers, registry readers, `shareAppKey` and `ERC7984_ABI`.
+
+  **@cofhe/react**
+
+  - New `useCofheShareLabels`. `useCofheShareOnChain` accepts `{ acp, labels | metadata }`.
+  - The inbox shows each share's labels and their verification. [Docs](https://cofhesdk.fhenix.io/react/acp#share-labels)
+
+  **Mocks and plugins**
+
+  - `ACPShareRegistry`, `ACPTimestampRevoker` and `Permissioned` are copied verbatim from a pinned cofhe-contracts commit (`pnpm update:cofhe-contracts <commit>`). The share registry is deployed behind `MockERC1967Proxy`.
+  - Mocks now need Solidity ≥0.8.25 and `@openzeppelin/contracts-upgradeable` (new Hardhat plugin peer dependency; Foundry users add its remapping).
+
+### Patch Changes
+
+- 621e4c3: ACP store lookups now match the account address case-insensitively. Previously an account passed in a different case than the one it was stored under (for example a lowercased address from an indexer or URL, while ACPs are saved under the wallet's checksummed address) was not found: `decryptForView(...).setAccount(addr)` failed with `ACPNotFound`, and `getOrCreateSelfACP` created a new ACP and asked the wallet for a new signature on every call. Accounts keep the spelling they were first stored under, so existing persisted data and the `@cofhe/react` hooks are unaffected.
+- a4374aa: The persisted ACP store is now reset when `acps` or `activeACPHash` was saved as `null` or an array. Previously a saved `null` passed the structure check and was rehydrated as-is, so reading or creating ACPs (`getACP`, `getACPs`, `setACP`, …) and the `@cofhe/react` ACP hooks threw a `TypeError` until the browser storage was cleared. The shape is now repaired on load as well as before each store access.
+- 896a438: fix(sdk): don't treat Object.prototype keys as known backend error codes
+
+  `isBackendApiErrorCode` used `value in BACKEND_ERROR_CODE_TO_COFHE_ERROR_CODE`, and `in` also matches inherited keys. So a backend `error` of `toString`, `constructor`, `valueOf` or `hasOwnProperty` was treated as recognised and `mapApiErrorCodeToCofheErrorCode` returned the inherited value — a function — instead of the documented fallback. `CofheError.code` then held a non-string, so `err.code === CofheErrorCode.X` comparisons silently failed.
+
+  Switched to an own-property check. Recognised codes and ordinary unknown codes are unaffected.
+
+- a34bef0: Hex decoding of the FHE public key and CRS now strips `0x` before padding an odd-length string, and throws on non-hex characters instead of silently decoding them to zero bytes.
+- f84e430: `encryptInputs` on the Hardhat mocks now rejects out-of-range values with the same error as the production path. Previously the mocks only checked the total bit count, so for example `Encryptable.uint8(256n)` passed and `MockCoFHE` masked it to `0`, letting local tests pass while the same call threw `Value out of range` on a real network.
+- 5a192ee: Node storage now creates ~/.cofhesdk with mode 0700 and files with 0600, and tightens permissions on existing ones.
+- 757e448: Use the latest chain block timestamp for injected ACP revoker data while preserving explicit revoker configuration precedence.
+- 73d5297: `seal` and `unsealWithPrivateKey` now throw when the sealing key contains non-hex characters. Previously a 64-character key with invalid characters passed the length check and those characters decoded to zero bytes, so `seal` silently encrypted to the wrong key (an entirely invalid key became the all-zero key, which offers no confidentiality), and `unsealWithPrivateKey` failed later with `Failed to decrypt message`.
+- a4fcea7: `verifyDecryptResult` now returns `false` when the chain's TaskManager has no `decryptResultSigner` set (zero address). It used to return `true` for any signature in that case. The on-chain `verifyDecryptResult` still skips the check when no signer is set.
+
 ## 0.8.0
 
 ### Minor Changes

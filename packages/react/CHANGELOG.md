@@ -1,5 +1,47 @@
 # @cofhe/react
 
+## 0.9.0
+
+### Minor Changes
+
+- 6dcfb7d: ACPs sharing SNAPSHOTs (ctHashes rather than live data) can use the new on-chain ACP Sharing Registry `metadata` field to cite the origin of the snapshotted data (contract address + view-function / event), and the recipient can verify it on-chain. [Docs](https://cofhesdk.fhenix.io/sdk/acp#labelling-a-snapshot-share)
+
+  **@cofhe/sdk**
+
+  - `createSharing({ labels })`, `shareOnChain(acp, { labels | metadata })`; labels travel in `export()` / `importShared` as `SharedACP.metadata`.
+  - New `client.acp.verifyShareLabels`, `client.acp.getShareFromChain`, and `describeShareMetadata`. `IncomingShare` gains `metadata` and `appKey`.
+  - New `acp.app` config option: shares are tagged with the app's key and `getIncomingShares` lists only that app's shares ([docs](https://cofhesdk.fhenix.io/sdk/acp#mark-shares-for-your-app)).
+  - `@cofhe/sdk/acps` exports the metadata codec, label builders (`viewFunctionLabel`, `eventLogLabel`, `UNLABELLED`), verifiers, registry readers, `shareAppKey` and `ERC7984_ABI`.
+
+  **@cofhe/react**
+
+  - New `useCofheShareLabels`. `useCofheShareOnChain` accepts `{ acp, labels | metadata }`.
+  - The inbox shows each share's labels and their verification. [Docs](https://cofhesdk.fhenix.io/react/acp#share-labels)
+
+  **Mocks and plugins**
+
+  - `ACPShareRegistry`, `ACPTimestampRevoker` and `Permissioned` are copied verbatim from a pinned cofhe-contracts commit (`pnpm update:cofhe-contracts <commit>`). The share registry is deployed behind `MockERC1967Proxy`.
+  - Mocks now need Solidity ≥0.8.25 and `@openzeppelin/contracts-upgradeable` (new Hardhat plugin peer dependency; Foundry users add its remapping).
+
+### Patch Changes
+
+- 6cc0e44: ACP on-chain status queries are now scoped by chain ID, preventing cached validity or revocation results from being reused after switching networks.
+- 9307bbf: Preserve caller-provided retry policies in `useCofheDecrypt` while retaining the existing three-retry policy as the default.
+- df1eb81: **Breaking:** `CofheProvider` takes either `config` or `cofheClient`, not both. Passing both is a type error and throws at render. To use a pre-created client, pass `cofheClient` alone; the provider takes the React settings from the config the client was created with (`createCofheClient(config)`). `CofheProviderProps` is now a union type, so extend it with `type MyProps = CofheProviderProps & { … }` instead of an `interface … extends`.
+- Updated dependencies [b9ea2d4]
+- Updated dependencies [621e4c3]
+- Updated dependencies [a4374aa]
+- Updated dependencies [896a438]
+- Updated dependencies [a34bef0]
+- Updated dependencies [f84e430]
+- Updated dependencies [5a192ee]
+- Updated dependencies [757e448]
+- Updated dependencies [73d5297]
+- Updated dependencies [6dcfb7d]
+- Updated dependencies [a4fcea7]
+  - @cofhe/abi@0.9.0
+  - @cofhe/sdk@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
